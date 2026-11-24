@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.8"
+          python-version: "3.14"
+      - name: Test core without optional integrations
+        run: |
+          uv run --locked --exact python -c "import importlib.util; import alchemy_repo; assert all(importlib.util.find_spec(name) is None for name in ('pydantic', 'fastapi'))"
+          uv run --locked pytest
+      - name: Test with Pydantic
+        run: uv run --locked --exact --extra pydantic pytest
+      - name: Test with FastAPI
+        run: uv run --locked --exact --extra fastapi --group fastapi-test pytest
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.8"
+          python-version: "3.14"
+      - run: uv build
+      - name: Smoke test the wheel
+        run: |
+          wheel=$(find dist -maxdepth 1 -name '*.whl')
+          uv run --isolated --no-project --with "$wheel" python -c "from alchemy_repo import BaseRepository, CursorPage"
+          uv run --isolated --no-project --with "${wheel}[fastapi]" python -c "from alchemy_repo.fastapi import PageRequestDepends; from alchemy_repo.pydantic import Page"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: distributions
+          path: dist/
+          if-no-files-found: error

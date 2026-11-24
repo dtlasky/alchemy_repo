@@ -1,0 +1,35 @@
+[project]
+name = "alchemy-repo"
+version = "0.1.0"
+description = "Async SQLAlchemy repositories with built-in pagination."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "tlasky", email = "dav.tlaskal@proton.me" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "sqlalchemy[asyncio]>=2.1,<3",
+]
+
+[project.optional-dependencies]
+pydantic = ["pydantic>=2.13.4,<3"]
+fastapi = ["fastapi>=0.115,<1", "alchemy-repo[pydantic]"]
+
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.22.1",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
+
+fastapi-test = ["httpx>=0.28,<1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_default_fixture_loop_scope = "function"
+
+[build-system]
+requires = ["uv_build>=0.11.8,<0.12.0"]
+build-backend = "uv_build"
