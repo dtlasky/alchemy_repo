@@ -252,6 +252,18 @@ uv build
 
 GitHub Actions runs the test suite and builds the wheel and source distribution on pushes and pull requests.
 
+## Releasing
+
+Publishing a GitHub release with a tag matching the package version (for example,
+`v0.1.0`) runs the test and build jobs, then publishes the resulting distributions
+to PyPI through Trusted Publishing.
+
+For the initial setup, create a pending GitHub publisher in
+[PyPI Publishing](https://pypi.org/manage/account/publishing/) for project
+`alchemy-repo`, owner `dtlasky`, repository `alchemy_repo`, workflow
+`release.yml`, and environment `pypi`. GitHub Actions authenticates through
+OIDC. No PyPI API token is required.
+
 ## License
 
 Alchemy Repo is available under the [MIT License](LICENSE).

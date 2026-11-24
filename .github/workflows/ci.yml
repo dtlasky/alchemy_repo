@@ -4,6 +4,7 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -34,6 +35,19 @@ jobs:
         with:
           version: "0.11.8"
           python-version: "3.14"
+      - name: Check release tag against package version
+        if: github.event_name == 'release'
+        run: |
+          uv run --no-project python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          tag = os.environ["GITHUB_REF_NAME"]
+          if tag != f"v{version}":
+              raise SystemExit(f"Release tag {tag!r} must be v{version}.")
+          PY
       - run: uv build
       - name: Smoke test the wheel
         run: |
