@@ -52,7 +52,7 @@ class ArticleRepository(BaseRepository[Article]):
     def __init__(self, session: AsyncSession) -> None:
         super().__init__(Article, session)
 
-    async def get_published_page(self, request: PageRequest) -> Page[Article]:
+    async def get_published(self, request: PageRequest) -> Page[Article]:
         query = self.select_model().where(Article.published.is_(True))
         return await self.get_page(request, query)
 
@@ -72,7 +72,7 @@ async def main() -> None:
             await articles.save(Article(title="Draft", published=False))
 
             request = PageRequest(page=0, size=1, sort=[SortOrder.parse("id:desc")])
-            page = await articles.get_published_page(request)
+            page = await articles.get_published(request)
 
             print([article.title for article in page.items])  # ['Second post']
             print(page.total, page.total_pages, page.has_next)  # 2 2 True
@@ -83,6 +83,15 @@ async def main() -> None:
 if __name__ == "__main__":
     asyncio.run(main())
 ```
+
+## Repository design
+
+Define a repository subclass for each model and bind that model in the
+subclass constructor. Put application queries behind methods that describe
+what the caller needs, such as `ArticleRepository.get_published()`. Routes and
+services pass in request data and work with the returned models. The repository
+owns the SQLAlchemy filters and statement construction, so multiple callers
+can reuse the same query without knowing how it is built.
 
 ## Repository API
 
@@ -108,10 +117,14 @@ Pages start at zero. Use a stable sort with a unique tie-breaker when fetching s
 ### Primary-key lookup and existence
 
 ```python
+# In ArticleRepository
+async def has_drafts(self) -> bool:
+    query = self.select_model().where(Article.published.is_(False))
+    return await self.exists(query)
+
+# At the call site
 article = await articles.get_by_pk(42)
-has_drafts = await articles.exists(
-    articles.select_model().where(Article.published.is_(False))
-)
+has_drafts = await articles.has_drafts()
 ```
 
 For a composite primary key, pass a tuple in mapped primary-key order or a
@@ -120,11 +133,19 @@ dictionary keyed by mapped attribute names to `get_by_pk()`.
 ### Cursor pagination
 
 ```python
-query = articles.select_model().where(Article.published.is_(True))
-page = await articles.get_cursor_page(query, size=20)
+from alchemy_repo import CursorPage
 
+# In ArticleRepository
+async def get_published_after(
+    self, after: tuple[object, ...] | None = None
+) -> CursorPage[Article]:
+    query = self.select_model().where(Article.published.is_(True))
+    return await self.get_cursor_page(query, size=20, after=after)
+
+# At the call site
+page = await articles.get_published_after()
 if page.next_cursor is not None:
-    next_page = await articles.get_cursor_page(query, size=20, after=page.next_cursor)
+    next_page = await articles.get_published_after(page.next_cursor)
 ```
 
 Cursor pages use ascending mapped primary-key order, including composite keys.
@@ -242,7 +263,7 @@ async def search_articles(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Page[ArticleResponse]:
     articles = ArticleRepository(session)
-    page = await articles.get_published_page(request)
+    page = await articles.get_published(request)
     return Page[ArticleResponse].model_validate(page)
 ```
 
