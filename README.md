@@ -30,10 +30,10 @@ Save this code as `example.py`.
 ```python
 import asyncio
 
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from alchemy_repo import BaseRepository, PageRequest, SortOrder
+from alchemy_repo import BaseRepository, Page, PageRequest, SortOrder
 
 
 class Base(DeclarativeBase):
@@ -48,6 +48,15 @@ class Article(Base):
     published: Mapped[bool]
 
 
+class ArticleRepository(BaseRepository[Article]):
+    def __init__(self, session: AsyncSession) -> None:
+        super().__init__(Article, session)
+
+    async def get_published_page(self, request: PageRequest) -> Page[Article]:
+        query = self.select_model().where(Article.published.is_(True))
+        return await self.get_page(request, query)
+
+
 async def main() -> None:
     engine = create_async_engine("sqlite+aiosqlite://")
     sessions = async_sessionmaker(engine, expire_on_commit=False)
@@ -57,14 +66,13 @@ async def main() -> None:
             await connection.run_sync(Base.metadata.create_all)
 
         async with sessions.begin() as session:
-            articles = BaseRepository(Article, session)
+            articles = ArticleRepository(session)
             await articles.save(Article(title="First post", published=True))
             await articles.save(Article(title="Second post", published=True))
             await articles.save(Article(title="Draft", published=False))
 
-            query = articles.select_model().where(Article.published.is_(True))
             request = PageRequest(page=0, size=1, sort=[SortOrder.parse("id:desc")])
-            page = await articles.get_page(request, query)
+            page = await articles.get_published_page(request)
 
             print([article.title for article in page.items])  # ['Second post']
             print(page.total, page.total_pages, page.has_next)  # 2 2 True
@@ -202,8 +210,8 @@ sorts by title first, then by ID. `page` defaults to zero, `size` defaults to
 invalid sort directions produce HTTP 422. Which columns can be sorted depends
 on the repository query.
 
-This route assumes your app provides an `Article` ORM model and a
-`get_session` dependency.
+This route uses the `ArticleRepository` from the quickstart and assumes your
+app provides a `get_session` dependency.
 
 ```python
 from typing import Annotated
@@ -212,12 +220,11 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from alchemy_repo import BaseRepository
 from alchemy_repo.fastapi import PageRequestDepends
 from alchemy_repo.pydantic import Page
 
 from my_app.db import get_session
-from my_app.models import Article
+from my_app.repositories import ArticleRepository
 
 router = APIRouter()
 
@@ -234,9 +241,8 @@ async def search_articles(
     request: PageRequestDepends,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Page[ArticleResponse]:
-    articles = BaseRepository(Article, session)
-    query = articles.select_model().where(Article.published.is_(True))
-    page = await articles.get_page(request, query)
+    articles = ArticleRepository(session)
+    page = await articles.get_published_page(request)
     return Page[ArticleResponse].model_validate(page)
 ```
 
