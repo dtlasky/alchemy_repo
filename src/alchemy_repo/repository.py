@@ -49,10 +49,12 @@ class BaseRepository[EntityType: DeclarativeBase]:
 
     # Results
     @overload
-    async def execute[*Columns](self, stmt: TypedReturnsRows[*Columns]) -> Result[*Columns]: ...
+    async def execute[*Columns](self, stmt: TypedReturnsRows[*Columns]) -> Result[*Columns]:
+        ...
 
     @overload
-    async def execute(self, stmt: Executable) -> Result[*tuple[Any, ...]]: ...
+    async def execute(self, stmt: Executable) -> Result[*tuple[Any, ...]]:
+        ...
 
     async def execute(self, stmt: Executable) -> Result[*tuple[Any, ...]]:
         return await self._session.execute(stmt)
@@ -72,10 +74,10 @@ class BaseRepository[EntityType: DeclarativeBase]:
         return await self.scalar(select(1).where(stmt.exists())) is not None
 
     async def upsert[Key: str | ColumnLikeType](
-        self,
-        data: Mapping[Key, object],
-        index_elements: Sequence[ColumnLikeType],
-        update_none: bool = False,
+            self,
+            data: Mapping[Key, object],
+            index_elements: Sequence[ColumnLikeType],
+            update_none: bool = False,
     ) -> None:
         """Insert a row or update the columns provided for a matching key."""
         mapper = inspect(self._entity_type)
@@ -165,11 +167,11 @@ class BaseRepository[EntityType: DeclarativeBase]:
         )
 
     async def get_cursor_page(
-        self,
-        stmt: Select[EntityType] | None = None,
-        *,
-        size: int = 20,
-        after: tuple[object, ...] | None = None,
+            self,
+            stmt: Select[EntityType] | None = None,
+            *,
+            size: int = 20,
+            after: tuple[object, ...] | None = None,
     ) -> CursorPage[EntityType]:
         """Read a page in ascending mapped primary-key order without counting rows."""
         if size < 1:

@@ -3,7 +3,6 @@ from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
-
 from .page import PageRequest as CorePageRequest
 from .page import SortDirection
 from .page import SortOrder as CoreSortOrder
@@ -25,7 +24,6 @@ class PageRequest(BaseModel):
     page: int = Field(default=0, ge=0)
     size: int = Field(default=20, ge=1)
     sort: list[SortOrder] = Field(default_factory=list)
-
 
     def to_request(self) -> CorePageRequest:
         return CorePageRequest(

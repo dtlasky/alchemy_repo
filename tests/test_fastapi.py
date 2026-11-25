@@ -10,7 +10,6 @@ from httpx import ASGITransport, AsyncClient
 
 from alchemy_repo.fastapi import PageRequestDepends
 
-
 pytestmark = pytest.mark.asyncio
 
 

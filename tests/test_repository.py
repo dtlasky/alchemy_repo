@@ -164,7 +164,6 @@ async def test_page_rejects_unknown_sort_names(session, column, error):
         await repo.get_page(PageRequest(sort=[SortOrder(column=column)]))
 
 
-
 @pytest.mark.asyncio
 async def test_upsert_without_native_conflict_support(session):
     class GenericRepository(BaseRepository[Item]):
@@ -180,7 +179,6 @@ async def test_upsert_without_native_conflict_support(session):
 
     rows = (await repo.scalars(select(Item).order_by(Item.name))).all()
     assert [(row.name, row.note) for row in rows] == [("one", None), ("two", None)]
-
 
 
 @pytest.mark.asyncio

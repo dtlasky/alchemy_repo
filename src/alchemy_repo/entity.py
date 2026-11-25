@@ -5,11 +5,9 @@ from sqlalchemy import Column, ColumnCollection, ColumnElement, Table, UniqueCon
 from sqlalchemy.orm import ColumnProperty, InstrumentedAttribute, MappedColumn, Mapper
 from sqlalchemy.types import TypeEngine
 
-__all__ = ["ColumnInfo", "column_info"]
-
+__all__ = ["ColumnInfo", "column_info", 'ColumnLikeType', 'column_name', 'resolve_column']
 
 type ColumnLikeType = InstrumentedAttribute[Any] | MappedColumn[Any] | Column[Any]
-
 
 
 @dataclass(frozen=True)
@@ -46,8 +44,8 @@ def column_info(entity: InstrumentedAttribute[Any], /) -> ColumnInfo: ...
 
 
 def column_info(
-    entity: type[object] | InstrumentedAttribute[Any],
-    name: str | None = None,
+        entity: type[object] | InstrumentedAttribute[Any],
+        name: str | None = None,
 ) -> ColumnInfo:
     """Inspect an ORM attribute by its mapped name or by attribute reference."""
     if isinstance(entity, InstrumentedAttribute):

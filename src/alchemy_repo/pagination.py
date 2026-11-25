@@ -7,7 +7,6 @@ from sqlalchemy.sql import ColumnElement
 from .entity import resolve_column
 from .page import PageRequest, SortDirection, SortOrder
 
-
 __all__ = ["count_query", "map_sort_orders", "page_query"]
 
 
